@@ -1,0 +1,151 @@
+package com.julflips.nerv_printer.utils;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.util.Tuple;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.Vec3;
+
+import java.io.IOException;
+import java.io.Writer;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
+public final class ConfigSerializer {
+
+    private static JsonObject blockPosToJson(BlockPos pos) {
+        JsonObject obj = new JsonObject();
+        obj.addProperty("x", pos.getX());
+        obj.addProperty("y", pos.getY());
+        obj.addProperty("z", pos.getZ());
+        return obj;
+    }
+
+    private static JsonObject vec3dToJson(Vec3 vec) {
+        JsonObject obj = new JsonObject();
+        obj.addProperty("x", vec.x);
+        obj.addProperty("y", vec.y);
+        obj.addProperty("z", vec.z);
+        return obj;
+    }
+
+    private static JsonObject blockPosVecPairToJson(Tuple<BlockPos, Vec3> Tuple) {
+        JsonObject obj = new JsonObject();
+        obj.add("blockPos", blockPosToJson(Tuple.getA()));
+        obj.add("openPos", vec3dToJson(Tuple.getB()));
+        return obj;
+    }
+
+    public static void writeToJson(
+        Path file,
+        String type,
+        Tuple<BlockPos, Vec3> reset,
+        Tuple<BlockPos, Vec3> cartographyTable,
+        Tuple<BlockPos, Vec3> finishedMapChest,
+        ArrayList<Tuple<BlockPos, Vec3>> mapMaterialChests,
+        Tuple<Vec3, Tuple<Float, Float>> dumpStation,
+        BlockPos mapCorner,
+        HashMap<Item, ArrayList<Tuple<BlockPos, Vec3>>> materialDict
+    ) throws IOException {
+        writeToJson(file, type, reset, cartographyTable, finishedMapChest, null,null,
+            mapMaterialChests, dumpStation, mapCorner, materialDict, null);
+    }
+
+    public static void writeToJson (
+        Path file,
+        String type,
+        Tuple<BlockPos, Vec3> cartographyTable,
+        Tuple<BlockPos, Vec3> finishedMapChest,
+        Tuple<BlockPos, Vec3> usedToolChest,
+        Tuple<BlockPos, Vec3> bed,
+        ArrayList<Tuple<BlockPos, Vec3>> mapMaterialChests,
+        Tuple<Vec3, Tuple<Float, Float>> dumpStation,
+        BlockPos mapCorner,
+        HashMap<Item, ArrayList<Tuple<BlockPos, Vec3>>> materialDict,
+        Set<ItemStack> toolSet
+    ) throws IOException {
+        writeToJson(file, type, null, cartographyTable, finishedMapChest, usedToolChest, bed,
+            mapMaterialChests, dumpStation, mapCorner, materialDict, toolSet);
+    }
+
+    public static void writeToJson(
+        Path file,
+        String type,
+        Tuple<BlockPos, Vec3> reset,
+        Tuple<BlockPos, Vec3> cartographyTable,
+        Tuple<BlockPos, Vec3> finishedMapChest,
+        Tuple<BlockPos, Vec3> usedToolChest,
+        Tuple<BlockPos, Vec3> bed,
+        ArrayList<Tuple<BlockPos, Vec3>> mapMaterialChests,
+        Tuple<Vec3, Tuple<Float, Float>> dumpStation,
+        BlockPos mapCorner,
+        HashMap<Item, ArrayList<Tuple<BlockPos, Vec3>>> materialDict,
+        Set<ItemStack> toolSet
+    ) throws IOException {
+        JsonObject root = new JsonObject();
+
+        root.addProperty("type", type);
+        if (reset != null) root.add("reset", blockPosVecPairToJson(reset));
+        if (cartographyTable != null) root.add("cartographyTable", blockPosVecPairToJson(cartographyTable));
+        if (finishedMapChest != null) root.add("finishedMapChest", blockPosVecPairToJson(finishedMapChest));
+        if (usedToolChest != null) root.add("usedToolChest", blockPosVecPairToJson(usedToolChest));
+        if (bed != null) root.add("bed", blockPosVecPairToJson(bed));
+
+        if (mapMaterialChests != null) {
+            JsonArray materialChestsArray = new JsonArray();
+            for (Tuple<BlockPos, Vec3> Tuple : mapMaterialChests) {
+                materialChestsArray.add(blockPosVecPairToJson(Tuple));
+            }
+            root.add("mapMaterialChests", materialChestsArray);
+        }
+
+        if (dumpStation != null) {
+            JsonObject dumpStationObj = new JsonObject();
+            dumpStationObj.add("pos", vec3dToJson(dumpStation.getA()));
+            dumpStationObj.addProperty("yaw", dumpStation.getB().getA());
+            dumpStationObj.addProperty("pitch", dumpStation.getB().getB());
+            root.add("dumpStation", dumpStationObj);
+        }
+
+        if (mapCorner != null) root.add("mapCorner", blockPosToJson(mapCorner));
+
+        if (materialDict != null) {
+            JsonObject materialDictObj = new JsonObject();
+            for (Map.Entry<Item, ArrayList<Tuple<BlockPos, Vec3>>> entry : materialDict.entrySet()) {
+                String blockId = BuiltInRegistries.ITEM.getKey(entry.getKey()).toString();
+
+                JsonArray chestArray = new JsonArray();
+                for (Tuple<BlockPos, Vec3> Tuple : entry.getValue()) {
+                    chestArray.add(blockPosVecPairToJson(Tuple));
+                }
+
+                materialDictObj.add(blockId, chestArray);
+            }
+            root.add("materialDict", materialDictObj);
+        }
+
+        if (toolSet != null) {
+            JsonArray toolSetArray = new JsonArray();
+            for (ItemStack stack : toolSet) {
+                JsonObject stackObj = new JsonObject();
+                stackObj.addProperty("item", BuiltInRegistries.ITEM.getKey(stack.getItem()).toString());
+                toolSetArray.add(stackObj);
+            }
+            root.add("toolSet", toolSetArray);
+        }
+
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        try (Writer writer = Files.newBufferedWriter(file)) {
+            gson.toJson(root, writer);
+        }
+    }
+}

@@ -1,0 +1,45 @@
+.gradle/
+.gradle-dist/
+**/.gradle/
+
+# --- Build output ---
+# Ignore all build contents (classes, reports, intermediates, …)
+build/**
+versions/*/build/**
+
+# …but keep the finished mod jars so the newest builds are always in git
+!build/libs/
+!build/libs/*.jar
+!versions/*/build/libs/
+!versions/*/build/libs/*.jar
+
+!gradle/wrapper/gradle-wrapper.jar
+
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+.classpath
+.project
+.settings/
+
+/nbproject/private/
+/nbbuild/
+/dist/
+/.nb-gradle/
+
+.DS_Store
+Thumbs.db
+
+*.log
+*.class
+
+run/
+**/run/
+logs/
+**/logs/
+
+.env
+.env.*

@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Usage Help and General Discussion
+    url: https://github.com/Yur1Ca/litematica-printer/discussions
+    about: For installation, configuration, compatibility, server limitations, or issues that may not be bugs, start a discussion here.
